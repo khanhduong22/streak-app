@@ -17,6 +17,8 @@ export const users = pgTable("user", {
   email: text("email").unique().notNull(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  coins: integer("coins").default(0).notNull(),
+  freezeTokens: integer("freeze_tokens").default(0).notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
@@ -86,6 +88,8 @@ export const checkIns = pgTable("check_in", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   checkInDate: date("check_in_date", { mode: "string" }).notNull(),
+  status: text("status", { enum: ["checked_in", "frozen"] }).default("checked_in").notNull(),
+  mood: text("mood", { enum: ["happy", "tired", "stressed"] }),
   note: text("note"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });

@@ -6,6 +6,7 @@ import { getCheckIns } from "@/actions/checkin-actions";
 type DayData = {
   date: string;
   count: number; // 0 or 1
+  status?: "checked_in" | "frozen";
 };
 
 export function YearHeatmap({
@@ -22,16 +23,16 @@ export function YearHeatmap({
     // Fetch last 12 months
     startTransition(async () => {
       const now = new Date();
-      const allCheckIns: string[] = [];
+      const allCheckIns: { checkInDate: string; status: "checked_in" | "frozen"; note?: string | null }[] = [];
 
       // Fetch current month + last 11 months
       for (let i = 0; i < 12; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const data = await getCheckIns(streakId, d.getFullYear(), d.getMonth() + 1);
-        allCheckIns.push(...data.map((c) => c.checkInDate));
+        allCheckIns.push(...(data as any));
       }
 
-      const checkInSet = new Set(allCheckIns);
+      const checkInMap = new Map(allCheckIns.map(c => [c.checkInDate, c.status]));
 
       // Build 365 days array going back from today
       const result: DayData[] = [];
@@ -39,7 +40,12 @@ export function YearHeatmap({
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split("T")[0];
-        result.push({ date: dateStr, count: checkInSet.has(dateStr) ? 1 : 0 });
+        const status = checkInMap.get(dateStr);
+        result.push({ 
+          date: dateStr, 
+          count: status ? 1 : 0,
+          status: status as any
+        });
       }
 
       setDays(result);
@@ -84,8 +90,14 @@ export function YearHeatmap({
             <div
               key={day.date}
               className={`heatmap-cell ${day.count > 0 ? "active" : "inactive"} ${day.date === today ? "today" : ""}`}
-              style={day.count > 0 ? { background: color } : undefined}
-              title={`${day.date}${day.count > 0 ? " ✓" : ""}`}
+              style={
+                day.status === "frozen" 
+                  ? { background: "var(--accent-cyan)" } // Freeze color
+                  : day.count > 0 
+                    ? { background: color } 
+                    : undefined
+              }
+              title={`${day.date}${day.status === "frozen" ? " ❄️ Frozen" : day.count > 0 ? " ✓" : ""}`}
             />
           )
         )}

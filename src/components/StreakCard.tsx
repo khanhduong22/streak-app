@@ -6,6 +6,7 @@ import { CheckInCalendar } from "./CheckInCalendar";
 import { BadgeDisplay } from "./BadgeDisplay";
 import { YearHeatmap } from "./YearHeatmap";
 import { ShareCard } from "./ShareCard";
+import { MoodAnalytics } from "./MoodAnalytics";
 
 type Streak = {
   id: string;
@@ -19,7 +20,7 @@ type Streak = {
   createdAt: Date;
 };
 
-type View = "none" | "month" | "year" | "badges";
+type View = "none" | "month" | "year" | "badges" | "analytics";
 
 export function StreakCard({
   streak,
@@ -34,6 +35,7 @@ export function StreakCard({
   const [view, setView] = useState<View>("none");
   const [showShare, setShowShare] = useState(false);
   const [animating, setAnimating] = useState(false);
+  const [askingMood, setAskingMood] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
   const checkedInToday = streak.lastCheckIn === today;
@@ -48,11 +50,12 @@ export function StreakCard({
     setView((prev) => (prev === v ? "none" : v));
   }
 
-  function handleCheckIn() {
+  function handleCheckIn(mood?: "happy" | "tired" | "stressed" | null) {
+    setAskingMood(false);
     setAnimating(true);
     startTransition(async () => {
       try {
-        await checkIn(streak.id);
+        await checkIn(streak.id, undefined, mood);
       } catch (e: unknown) {
         alert((e as Error).message);
       }
@@ -93,6 +96,7 @@ export function StreakCard({
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("month")} title="Monthly Calendar">🗓️</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("year")} title="Year Heatmap">📊</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("badges")} title="Badges">🏅</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => toggleView("analytics")} title="Mood Analytics">🧠</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)} title="Share">📤</button>
             <button className="btn btn-ghost btn-sm" onClick={() => onEdit(streak)} title="Edit">✏️</button>
             <button className="btn btn-ghost btn-sm" onClick={() => onDelete(streak.id)} title="Delete">🗑️</button>
@@ -135,6 +139,9 @@ export function StreakCard({
         {view === "badges" && (
           <BadgeDisplay longestStreak={streak.longestStreak} />
         )}
+        {view === "analytics" && (
+          <MoodAnalytics streakId={streak.id} />
+        )}
 
         {/* Check-in */}
         {checkedInToday ? (
@@ -151,10 +158,22 @@ export function StreakCard({
               ↩️
             </button>
           </div>
+        ) : askingMood ? (
+          <div style={{ marginTop: 16, background: "var(--bg-glass)", padding: 12, borderRadius: "var(--radius-md)" }}>
+            <div style={{ fontSize: "0.875rem", marginBottom: 8, color: "var(--text-secondary)", textAlign: "center" }}>
+              How are you feeling today?
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleCheckIn("happy")}>😊</button>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleCheckIn("tired")}>😫</button>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleCheckIn("stressed")}>🤯</button>
+              <button className="btn btn-ghost" style={{ flex: 1, padding: 8 }} onClick={() => handleCheckIn(null)}>Skip</button>
+            </div>
+          </div>
         ) : (
           <button
             className="checkin-btn available"
-            onClick={handleCheckIn}
+            onClick={() => setAskingMood(true)}
             disabled={isPending}
           >
             {isPending ? "⏳ Checking in..." : "🔥 Check in"}
