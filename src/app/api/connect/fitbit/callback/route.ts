@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   if (error || !code || !userId) {
     return NextResponse.redirect(
-      `${cleanBaseUrl}/settings?fitbit=error&reason=${error || "missing_params"}`
+      `${cleanBaseUrl}/dashboard?fitbit=error&reason=${error || "missing_params"}`
     );
   }
 
@@ -65,12 +65,12 @@ export async function GET(req: NextRequest) {
       .where(eq(users.id, userId));
 
     return NextResponse.redirect(
-      `${cleanBaseUrl}/settings?fitbit=connected`
+      `${cleanBaseUrl}/dashboard?fitbit=connected`
     );
   } catch (err) {
     console.error("Fitbit OAuth error:", err);
     return NextResponse.redirect(
-      `${cleanBaseUrl}/settings?fitbit=error&reason=token_exchange_failed`
+      `${cleanBaseUrl}/dashboard?fitbit=error&reason=token_exchange_failed`
     );
   }
 }
