@@ -7,6 +7,7 @@ import { deleteStreak } from "@/actions/streak-actions";
 import { CoopInviteBar } from "@/components/CoopInviteBar";
 import { AICoachPanel } from "@/components/AICoachPanel";
 import { MonthlyWrapped } from "@/components/MonthlyWrapped";
+import { GuiltyHeader } from "@/components/GuiltyHeader";
 import Link from "next/link";
 
 type Streak = {
@@ -24,6 +25,9 @@ type Streak = {
   autoCheckinSource: "none" | "fitbit";
   autoCheckinMinMinutes: number;
   autoCheckinMinSteps: number;
+  zenMode: boolean;
+  impactMultiplier: number;
+  impactUnit: string;
   createdAt: Date;
   updatedAt: Date;
   userId: string;
@@ -45,6 +49,9 @@ export function DashboardClient({
 
   const totalActiveStreaks = initialStreaks.filter((s) => s.currentStreak > 0).length;
   const longestOverall = Math.max(0, ...initialStreaks.map((s) => s.longestStreak));
+  const today = new Date().toISOString().split("T")[0];
+  const hasUnchecked = initialStreaks.some((s) => s.lastCheckIn !== today && s.currentStreak > 0);
+  const longestActive = Math.max(0, ...initialStreaks.filter((s) => s.lastCheckIn !== today).map((s) => s.currentStreak));
 
   // Auto-show Monthly Wrapped on 1st-3rd of month
   useEffect(() => {
@@ -80,6 +87,11 @@ export function DashboardClient({
 
   return (
     <div className="dashboard">
+      {/* Guilt Trip Header */}
+      {initialStreaks.length > 0 && (
+        <GuiltyHeader hasUncheckedStreaks={hasUnchecked} longestActiveStreak={longestActive} />
+      )}
+
       {/* AI Coach Panel */}
       {initialStreaks.length > 0 && (
         <AICoachPanel
@@ -152,6 +164,9 @@ export function DashboardClient({
                   emoji: editingStreak.emoji || "🔥",
                   color: editingStreak.color || "#f97316",
                   targetDays: editingStreak.targetDays || 0,
+                  zenMode: editingStreak.zenMode,
+                  impactMultiplier: editingStreak.impactMultiplier,
+                  impactUnit: editingStreak.impactUnit,
                 }
               : null
           }

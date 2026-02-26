@@ -10,6 +10,7 @@ import { MoodAnalytics } from "./MoodAnalytics";
 import { CoopPanel } from "./CoopPanel";
 import { StakePanel } from "./StakePanel";
 import { FitbitConnectPanel } from "./FitbitConnectPanel";
+import { ZenMilestoneModal, checkIsMilestone } from "./ZenMilestoneModal";
 
 type Streak = {
   id: string;
@@ -26,6 +27,9 @@ type Streak = {
   autoCheckinSource: "none" | "fitbit";
   autoCheckinMinMinutes: number;
   autoCheckinMinSteps: number;
+  zenMode: boolean;
+  impactMultiplier: number;
+  impactUnit: string;
   createdAt: Date;
 };
 
@@ -48,6 +52,11 @@ export function StreakCard({
   const [step, setStep] = useState<CheckInStep>("idle");
   const [selectedTier, setSelectedTier] = useState<"full" | "half" | "minimal">("full");
   const [selectedMood, setSelectedMood] = useState<"happy" | "tired" | "stressed" | null>(null);
+  const [milestone, setMilestone] = useState<number | null>(null);
+  // Hold-to-check-in
+  const [holdProgress, setHoldProgress] = useState(0); // 0-100
+  const holdTimer = useState<ReturnType<typeof setInterval> | null>(null);
+  const holdStart = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
   const checkedInToday = streak.lastCheckIn === today;
@@ -84,7 +93,15 @@ export function StreakCard({
     setAnimating(true);
     startTransition(async () => {
       try {
-        await checkIn(streak.id, undefined, mood, tier);
+        const result = await checkIn(streak.id, undefined, mood, tier);
+        // Check for zen milestone
+        if (streak.zenMode) {
+          // newStreak = old + 1 (simplistic — actual comes from server but we infer it)
+          const newStreak = streak.currentStreak + 1;
+          if (checkIsMilestone(newStreak)) {
+            setMilestone(newStreak);
+          }
+        }
       } catch (e: unknown) {
         alert((e as Error).message);
         setStep("idle");
@@ -107,6 +124,43 @@ export function StreakCard({
     setStep("idle");
     setSelectedTier("full");
     setSelectedMood(null);
+  }
+
+  // ─── Hold-to-Check-in ───────────────────────────────────
+  function startHold() {
+    if (isPending) return;
+    let progress = 0;
+    const DURATION = 2000; // ms
+    const TICK = 50; // ms
+    const increment = (TICK / DURATION) * 100;
+
+    // Haptic rhythm: light buzz every 400ms during hold
+    const hapticInterval = setInterval(() => {
+      if (navigator.vibrate) navigator.vibrate(12);
+    }, 400);
+
+    const interval = setInterval(() => {
+      progress += increment;
+      setHoldProgress(Math.min(progress, 100));
+      if (progress >= 100) {
+        clearInterval(interval);
+        clearInterval(hapticInterval);
+        // Completion boom: strong burst + ting simulation
+        if (navigator.vibrate) navigator.vibrate([80, 40, 150]);
+        setHoldProgress(0);
+        handleCheckInInit();
+      }
+    }, TICK);
+
+    holdTimer[1](interval);
+  }
+
+  function stopHold() {
+    if (holdTimer[0]) {
+      clearInterval(holdTimer[0]);
+      holdTimer[1](null);
+    }
+    setHoldProgress(0);
   }
 
   return (
@@ -142,14 +196,21 @@ export function StreakCard({
           </div>
         </div>
 
-        {/* Count */}
-        <div className="streak-card-count">
-          <span className="streak-card-number" style={{ color }}>{streak.currentStreak}</span>
-          <span className="streak-card-label">day streak</span>
-        </div>
+        {/* Count — hidden in Zen Mode */}
+        {streak.zenMode ? (
+          <div className="streak-card-zen-count" style={{ color }}>
+            <span className="streak-card-zen-icon">🧘</span>
+            <span className="streak-card-zen-label">Tu Tiên Giấu Nghề</span>
+          </div>
+        ) : (
+          <div className="streak-card-count">
+            <span className="streak-card-number" style={{ color }}>{streak.currentStreak}</span>
+            <span className="streak-card-label">day streak</span>
+          </div>
+        )}
 
-        {/* Progress */}
-        {streak.targetDays ? (
+        {/* Progress — hidden in Zen Mode */}
+        {!streak.zenMode && streak.targetDays ? (
           <div className="progress-bar">
             <div
               className="progress-bar-fill"
@@ -160,11 +221,27 @@ export function StreakCard({
 
         {/* Meta */}
         <div className="streak-card-meta">
-          <span className="streak-card-meta-item">🏆 Best: {streak.longestStreak}</span>
-          <span className="streak-card-meta-item">
-            📅 Since {new Date(streak.createdAt).toLocaleDateString()}
-          </span>
+          {streak.zenMode ? (
+            <span className="streak-card-meta-item" style={{ color: "var(--text-muted)", fontStyle: "italic" }}>🌫️ Con số ẩn — cứ làm thôi!</span>
+          ) : (
+            <>
+              <span className="streak-card-meta-item">🏆 Best: {streak.longestStreak}</span>
+              <span className="streak-card-meta-item">
+                📅 Since {new Date(streak.createdAt).toLocaleDateString()}
+              </span>
+            </>
+          )}
         </div>
+
+        {/* Cumulative Impact */}
+        {streak.impactMultiplier > 0 && streak.impactUnit && streak.currentStreak > 0 && (
+          <div className="streak-impact">
+            <span className="streak-impact-label">⚡ Tổng tích lũy:</span>
+            <span className="streak-impact-value">
+              {(streak.currentStreak * streak.impactMultiplier).toLocaleString()} {streak.impactUnit}
+            </span>
+          </div>
+        )}
 
         {/* Expandable panels */}
         {view === "month" && <CheckInCalendar streakId={streak.id} color={color} />}
@@ -231,14 +308,40 @@ export function StreakCard({
           </div>
 
         ) : step === "idle" ? (
-          <button className="checkin-btn available" onClick={handleCheckInInit} disabled={isPending}>
-            {isPending ? "⏳ Checking in..." : "🔥 Check in"}
-          </button>
+          <div className="hold-checkin-wrap">
+            <button
+              className="checkin-btn available hold-checkin-btn"
+              onPointerDown={startHold}
+              onPointerUp={stopHold}
+              onPointerLeave={stopHold}
+              onPointerCancel={stopHold}
+              disabled={isPending}
+              style={{ position: "relative", overflow: "hidden", userSelect: "none" }}
+            >
+              {/* Progress fill */}
+              <span
+                className="hold-progress-fill"
+                style={{ width: `${holdProgress}%` }}
+              />
+              <span className="hold-btn-label">
+                {isPending ? "⏳ Checking in..." : holdProgress > 0 ? `🔥 Hold... ${Math.round(holdProgress)}%` : "🔥 Hold to check in"}
+              </span>
+            </button>
+            <div className="hold-hint">Giữ nút 2 giây để check-in ✔️</div>
+          </div>
         ) : null}
       </div>
 
       {showShare && (
         <ShareCard streakId={streak.id} streakTitle={streak.title} onClose={() => setShowShare(false)} />
+      )}
+
+      {milestone !== null && (
+        <ZenMilestoneModal
+          streakCount={milestone}
+          streakTitle={streak.title}
+          onClose={() => setMilestone(null)}
+        />
       )}
     </>
   );

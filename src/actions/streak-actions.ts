@@ -21,6 +21,9 @@ export async function createStreak(data: {
   emoji: string;
   color: string;
   targetDays: number;
+  zenMode?: boolean;
+  impactMultiplier?: number;
+  impactUnit?: string;
 }) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -31,6 +34,9 @@ export async function createStreak(data: {
     emoji: data.emoji,
     color: data.color,
     targetDays: data.targetDays,
+    zenMode: data.zenMode ?? false,
+    impactMultiplier: data.impactMultiplier ?? 0,
+    impactUnit: data.impactUnit ?? "",
   });
 
   revalidatePath("/dashboard");
@@ -38,7 +44,7 @@ export async function createStreak(data: {
 
 export async function updateStreak(
   id: string,
-  data: { title: string; emoji: string; color: string; targetDays: number }
+  data: { title: string; emoji: string; color: string; targetDays: number; zenMode?: boolean; impactMultiplier?: number; impactUnit?: string }
 ) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -50,6 +56,9 @@ export async function updateStreak(
       emoji: data.emoji,
       color: data.color,
       targetDays: data.targetDays,
+      zenMode: data.zenMode ?? false,
+      impactMultiplier: data.impactMultiplier ?? 0,
+      impactUnit: data.impactUnit ?? "",
       updatedAt: new Date(),
     })
     .where(and(eq(streaks.id, id), eq(streaks.userId, session.user.id)));

@@ -1577,3 +1577,287 @@ body {
   color: var(--text-secondary);
 }
 
+/* ─── Zen Mode ───────────────────────────────────────── */
+.streak-card-zen-count {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 6px;
+}
+
+.streak-card-zen-icon {
+  font-size: 1.75rem;
+  animation: zen-breathe 4s ease-in-out infinite;
+}
+
+@keyframes zen-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+.streak-card-zen-label {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: linear-gradient(135deg, #a78bfa, #67e8f9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Zen toggle in StreakForm */
+.zen-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.zen-toggle:hover { border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.06); }
+.zen-toggle.active { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.08); }
+
+.zen-toggle-inner { display: flex; align-items: center; gap: 12px; }
+.zen-toggle-icon { font-size: 1.5rem; flex-shrink: 0; }
+.zen-toggle-title { font-size: 0.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.zen-toggle-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+
+.zen-switch {
+  width: 40px; height: 22px; border-radius: 11px;
+  background: var(--border-color); position: relative;
+  flex-shrink: 0; transition: background 0.25s;
+}
+
+.zen-switch::after {
+  content: ""; position: absolute;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: white; top: 3px; left: 3px;
+  transition: transform 0.25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.zen-switch.on { background: linear-gradient(135deg, #a78bfa, #67e8f9); }
+.zen-switch.on::after { transform: translateX(18px); }
+
+/* ─── Zen Milestone Modal ────────────────────────────── */
+.zen-milestone-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: fade-in 0.3s ease-out;
+}
+
+.zen-milestone-card {
+  position: relative;
+  background: linear-gradient(145deg, #12121a, #1a0a2e);
+  border: 1px solid rgba(167,139,250,0.4);
+  border-radius: var(--radius-xl);
+  padding: 40px 32px; width: 100%; max-width: 440px;
+  text-align: center;
+  animation: milestone-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+@keyframes milestone-pop {
+  0% { transform: scale(0.6) translateY(40px); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.zen-milestone-bg-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(167,139,250,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.zen-milestone-habit {
+  font-size: 0.8125rem; color: rgba(167,139,250,0.7);
+  font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 16px;
+}
+
+.zen-milestone-icon {
+  font-size: 4rem; margin-bottom: 12px;
+  animation: icon-bounce 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s both;
+}
+
+@keyframes icon-bounce {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.zen-milestone-title {
+  font-size: 1.5rem; font-weight: 900;
+  background: linear-gradient(135deg, #c4b5fd, #67e8f9, #f9a8d4);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 16px; line-height: 1.2;
+}
+
+.zen-milestone-number {
+  display: flex; align-items: baseline; justify-content: center;
+  gap: 8px; margin-bottom: 18px;
+}
+
+.zen-milestone-n {
+  font-size: 5rem; font-weight: 900; line-height: 1;
+  background: linear-gradient(135deg, #f9a8d4, #c4b5fd);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.zen-milestone-unit { font-size: 1.25rem; font-weight: 700; color: var(--text-muted); }
+
+.zen-milestone-body {
+  font-size: 0.9375rem; color: var(--text-secondary);
+  line-height: 1.7; margin-bottom: 28px;
+}
+
+.zen-milestone-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #a78bfa, #67e8f9) !important;
+  color: #0a0a14 !important;
+  font-weight: 800;
+}
+
+/* ─── Guilty Trip Header ─────────────────────────────── */
+.guilty-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+  transition: all 0.5s;
+  animation: fade-in 0.5s ease-out;
+}
+
+.guilty-header.morning {
+  background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(251,191,36,0.08));
+  color: #fbbf24;
+  border: 1px solid rgba(251,191,36,0.2);
+}
+
+.guilty-header.afternoon {
+  background: linear-gradient(135deg, rgba(34,211,238,0.1), rgba(59,130,246,0.08));
+  color: #93c5fd;
+  border: 1px solid rgba(99,102,241,0.2);
+}
+
+.guilty-header.evening {
+  background: linear-gradient(135deg, rgba(167,139,250,0.1), rgba(236,72,153,0.08));
+  color: #c4b5fd;
+  border: 1px solid rgba(167,139,250,0.2);
+}
+
+.guilty-header.danger,
+.guilty-header.lateNight {
+  background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(185,28,28,0.1));
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.35);
+  animation: guilt-pulse 2s ease-in-out infinite;
+}
+
+@keyframes guilt-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  50% { box-shadow: 0 0 12px 2px rgba(239,68,68,0.25); }
+}
+
+.guilty-header-text { flex: 1; }
+
+.guilty-header-pulse {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+/* ─── Hold-to-Check-in ───────────────────────────────── */
+.hold-checkin-wrap { margin-top: 16px; }
+
+.hold-checkin-btn {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+.hold-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(255,255,255,0.15);
+  transition: width 0.05s linear;
+  pointer-events: none;
+}
+
+.hold-btn-label {
+  position: relative;
+  z-index: 1;
+}
+
+.hold-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ─── Cumulative Impact ──────────────────────────────── */
+.streak-impact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(251,191,36,0.05));
+  border: 1px solid rgba(249,115,22,0.18);
+  border-radius: var(--radius-md);
+  margin-top: 10px;
+}
+
+.streak-impact-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.streak-impact-value {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #f97316, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Impact preview in StreakForm ───────────────────── */
+.impact-preview {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  background: rgba(249,115,22,0.06);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid rgba(249,115,22,0.4);
+}

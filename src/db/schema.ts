@@ -90,6 +90,11 @@ export const streaks = pgTable("streak", {
   autoCheckinSource: text("auto_checkin_source", { enum: ["none", "fitbit"] }).default("none").notNull(),
   autoCheckinMinMinutes: integer("auto_checkin_min_minutes").default(10).notNull(),
   autoCheckinMinSteps: integer("auto_checkin_min_steps").default(2000).notNull(),
+  // Zen Mode
+  zenMode: boolean("zen_mode").default(false).notNull(),
+  // Cumulative Impact
+  impactMultiplier: integer("impact_multiplier").default(0).notNull(),
+  impactUnit: text("impact_unit").default("").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 });

@@ -21,6 +21,9 @@ type StreakData = {
   emoji: string;
   color: string;
   targetDays: number;
+  zenMode?: boolean;
+  impactMultiplier?: number;
+  impactUnit?: string;
 };
 
 export function StreakForm({
@@ -34,6 +37,9 @@ export function StreakForm({
   const [emoji, setEmoji] = useState(initial?.emoji || "🔥");
   const [color, setColor] = useState(initial?.color || "#f97316");
   const [targetDays, setTargetDays] = useState(initial?.targetDays || 0);
+  const [zenMode, setZenMode] = useState(initial?.zenMode ?? false);
+  const [impactMultiplier, setImpactMultiplier] = useState(initial?.impactMultiplier ?? 0);
+  const [impactUnit, setImpactUnit] = useState(initial?.impactUnit ?? "");
   const [isPending, startTransition] = useTransition();
 
   const isEditing = !!initial?.id;
@@ -49,6 +55,9 @@ export function StreakForm({
           emoji,
           color,
           targetDays,
+          zenMode,
+          impactMultiplier,
+          impactUnit,
         });
       } else {
         await createStreak({
@@ -56,6 +65,9 @@ export function StreakForm({
           emoji,
           color,
           targetDays,
+          zenMode,
+          impactMultiplier,
+          impactUnit,
         });
       }
       onClose();
@@ -125,6 +137,56 @@ export function StreakForm({
               onChange={(e) => setTargetDays(parseInt(e.target.value) || 0)}
             />
           </div>
+
+          {/* ─── Cumulative Impact ─── */}
+          <div className="form-group">
+            <label className="form-label">⚡ Thành quả tích lũy (để trống nếu không dùng)</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                className="form-input"
+                type="number"
+                min={0}
+                placeholder="Hệ số/ngày (VD: 10)"
+                value={impactMultiplier || ""}
+                onChange={(e) => setImpactMultiplier(parseInt(e.target.value) || 0)}
+                style={{ flex: "0 0 120px" }}
+              />
+              <input
+                className="form-input"
+                placeholder="Đơn vị (VD: trang sách, nghìn đồng)"
+                value={impactUnit}
+                onChange={(e) => setImpactUnit(e.target.value)}
+              />
+            </div>
+            {impactMultiplier > 0 && impactUnit && (
+              <div className="impact-preview">
+                VD: Streak 30 ngày = <strong>{(30 * impactMultiplier).toLocaleString()} {impactUnit}</strong>
+              </div>
+            )}
+          </div>
+
+          {/* ─── Zen Mode Toggle ─── */}
+          <button
+            type="button"
+            className={`zen-toggle ${zenMode ? "active" : ""}`}
+            onClick={() => setZenMode((z) => !z)}
+            title="Ẩn con số streak để giảm áp lực"
+          >
+            <div className="zen-toggle-inner">
+              <span className="zen-toggle-icon">{zenMode ? "🧘" : "👁️"}</span>
+              <div>
+                <div className="zen-toggle-title">
+                  Chế độ Tu Tiên Giấu Nghề {zenMode ? "(Đang bật)" : ""}
+                </div>
+                <div className="zen-toggle-desc">
+                  {zenMode
+                    ? "Con số ẩn đi — chỉ cần làm, không cần đếm 🌫️"
+                    : "Bật để ẩn số ngày streak, giảm áp lực"}
+                </div>
+              </div>
+            </div>
+            <div className={`zen-switch ${zenMode ? "on" : ""}`} />
+          </button>
 
           <div className="form-actions">
             <button
