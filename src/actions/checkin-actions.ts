@@ -203,33 +203,44 @@ export async function undoCheckIn(streakId: string) {
     // If they used freezes to bridge a gap, undoing today's checkin just removes today.
     // The freezes remain consumed and those days remain frozen.
 
-    // 5. Recalculate streak
-    const lastCheckIn = await tx.query.checkIns.findFirst({
+    // 5. Recalculate streak safely: sort dates descending, count consecutive
+    const allCheckIns = await tx.query.checkIns.findMany({
       where: and(eq(checkIns.streakId, streakId), eq(checkIns.userId, userId)),
       orderBy: (c, { desc }) => [desc(c.checkInDate)],
     });
 
-    // Walk back to calculate streak length
     let currentStreak = 0;
-    if (lastCheckIn) {
-      const allCheckIns = await tx.query.checkIns.findMany({
-        where: and(eq(checkIns.streakId, streakId), eq(checkIns.userId, userId)),
-        orderBy: (c, { desc }) => [desc(c.checkInDate)],
-      });
+    let lastDate: string | null = null;
+    let streak = 0;
 
-      const checkInDates = new Set(allCheckIns.map((c) => c.checkInDate));
-      const d = new Date(lastCheckIn.checkInDate);
-      while (checkInDates.has(d.toISOString().split("T")[0])) {
-        currentStreak++;
-        d.setDate(d.getDate() - 1);
+    for (const ci of allCheckIns) {
+      const d = ci.checkInDate; // "YYYY-MM-DD" string
+
+      if (lastDate === null) {
+        streak = 1;
+        lastDate = d;
+      } else {
+        // Compute "1 day before lastDate" in UTC to avoid timezone issues
+        const prevDate: Date = new Date(lastDate + "T12:00:00Z");
+        prevDate.setUTCDate(prevDate.getUTCDate() - 1);
+        const prevStr: string = prevDate.toISOString().split("T")[0];
+
+        if (d === prevStr) {
+          streak++;
+          lastDate = d;
+        } else {
+          break;
+        }
       }
     }
+    currentStreak = streak;
 
+    const latestCheckIn = allCheckIns[0];
     await tx
       .update(streaks)
       .set({
         currentStreak,
-        lastCheckIn: lastCheckIn?.checkInDate || null,
+        lastCheckIn: latestCheckIn?.checkInDate || null,
         updatedAt: new Date(),
       })
       .where(eq(streaks.id, streakId));
