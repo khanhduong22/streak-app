@@ -5,6 +5,7 @@ import { checkIns, streaks, users } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { forfeitStake } from "./stake-actions";
 
 function getTodayString(): string {
   const now = new Date();
@@ -124,6 +125,8 @@ export async function checkIn(
     } else {
       // ❌ Not enough freezes. Streak broken. Reset to 1.
       newCurrentStreak = 1;
+      // Forfeit any active stake since the streak just broke
+      await forfeitStake(streakId, userId);
     }
   }
 

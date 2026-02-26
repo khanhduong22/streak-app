@@ -77,6 +77,9 @@ export const streaks = pgTable("streak", {
   currentStreak: integer("current_streak").default(0).notNull(),
   longestStreak: integer("longest_streak").default(0).notNull(),
   lastCheckIn: date("last_check_in", { mode: "string" }),
+  // Penalty Staking: user bets coins on completing the streak
+  stakeAmount: integer("stake_amount").default(0).notNull(),
+  stakeStatus: text("stake_status", { enum: ["none", "active", "won", "lost"] }).default("none").notNull(),
   // Co-op: If set, this streak is paired with another streak
   coopPartnerStreakId: uuid("coop_partner_streak_id"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),

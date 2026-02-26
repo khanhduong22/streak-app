@@ -12,11 +12,24 @@ export async function getUserStats() {
 
   const user = await db.query.users.findFirst({
     where: eq(users.id, session.user.id),
-    columns: { coins: true, freezeTokens: true },
+    columns: { coins: true, freezeTokens: true, aiCoachPersonality: true },
   });
 
-  return user || { coins: 0, freezeTokens: 0 };
+  return user || { coins: 0, freezeTokens: 0, aiCoachPersonality: "military" as const };
 }
+
+export async function updateCoachPersonality(
+  personality: "military" | "sweetheart" | "stoic"
+) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  await db
+    .update(users)
+    .set({ aiCoachPersonality: personality })
+    .where(eq(users.id, session.user.id));
+}
+
 
 export async function buyFreezeToken() {
   const session = await auth();
