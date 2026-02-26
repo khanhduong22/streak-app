@@ -36,10 +36,9 @@ export function MonthlyWrapped({ onClose }: MonthlyWrappedProps) {
   // Auto-advance slides
   useEffect(() => {
     if (!data || loading) return;
-    if (step >= stats.length) return;
+    if (step >= 6) return; // 6 is the total number of stats
     const timer = setTimeout(() => setStep((s) => s + 1), 1200);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, loading, step]);
 
   function getMonthName(monthStr: string) {
