@@ -8,18 +8,23 @@ import { revalidatePath } from "next/cache";
 
 /** Get Fitbit connection status for the current user */
 export async function getFitbitStatus() {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { connected: false, expiry: null };
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, session.user.id),
-    columns: { fitbitAccessToken: true, fitbitTokenExpiry: true },
-  });
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, session.user.id),
+      columns: { fitbitAccessToken: true, fitbitTokenExpiry: true },
+    });
 
-  return {
-    connected: !!user?.fitbitAccessToken,
-    expiry: user?.fitbitTokenExpiry ?? null,
-  };
+    return {
+      connected: !!user?.fitbitAccessToken,
+      expiry: user?.fitbitTokenExpiry ?? null,
+    };
+  } catch (err) {
+    console.error("Error in getFitbitStatus:", err);
+    return { connected: false, expiry: null };
+  }
 }
 
 /** Disconnect Fitbit (remove tokens) */
