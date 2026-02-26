@@ -9,6 +9,7 @@ import { ShareCard } from "./ShareCard";
 import { MoodAnalytics } from "./MoodAnalytics";
 import { CoopPanel } from "./CoopPanel";
 import { StakePanel } from "./StakePanel";
+import { FitConnectPanel } from "./FitConnectPanel";
 
 type Streak = {
   id: string;
@@ -22,11 +23,14 @@ type Streak = {
   coopPartnerStreakId: string | null;
   stakeAmount: number;
   stakeStatus: "none" | "active" | "won" | "lost";
+  autoCheckinSource: "none" | "google_fit";
+  autoCheckinMinMinutes: number;
+  autoCheckinMinSteps: number;
   createdAt: Date;
 };
 
 type CheckInStep = "idle" | "tier" | "mood" | "done";
-type View = "none" | "month" | "year" | "badges" | "analytics" | "coop" | "stake";
+type View = "none" | "month" | "year" | "badges" | "analytics" | "coop" | "stake" | "fit";
 
 export function StreakCard({
   streak,
@@ -131,6 +135,7 @@ export function StreakCard({
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("analytics")} title="Mood Analytics">🧠</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("coop")} title="Co-op" style={{ color: streak.coopPartnerStreakId ? "#a78bfa" : undefined }}>🤝</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("stake")} title="Penalty Stake" style={{ color: streak.stakeStatus === "active" ? "#fbbf24" : streak.stakeStatus === "won" ? "#4ade80" : streak.stakeStatus === "lost" ? "#f87171" : undefined }}>🎲</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => toggleView("fit")} title="Auto Check-in (Google Fit)" style={{ color: streak.autoCheckinSource === "google_fit" ? "#22d3ee" : undefined }}>🏃</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)} title="Share">📤</button>
             <button className="btn btn-ghost btn-sm" onClick={() => onEdit(streak)} title="Edit">✏️</button>
             <button className="btn btn-ghost btn-sm" onClick={() => onDelete(streak.id)} title="Delete">🗑️</button>
@@ -178,6 +183,15 @@ export function StreakCard({
         )}
 
         {/* ─── Check-in Flow ────────────────────────────────── */}
+        {view === "fit" && (
+          <FitConnectPanel
+            streakId={streak.id}
+            autoCheckinSource={streak.autoCheckinSource}
+            autoCheckinMinMinutes={streak.autoCheckinMinMinutes}
+            autoCheckinMinSteps={streak.autoCheckinMinSteps}
+          />
+        )}
+
         {checkedInToday ? (
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             <button className="checkin-btn done" style={{ flex: 1 }} disabled>

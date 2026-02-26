@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { ShopModal } from "./ShopModal";
