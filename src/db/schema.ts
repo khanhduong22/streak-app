@@ -89,6 +89,7 @@ export const checkIns = pgTable("check_in", {
     .references(() => users.id, { onDelete: "cascade" }),
   checkInDate: date("check_in_date", { mode: "string" }).notNull(),
   status: text("status", { enum: ["checked_in", "frozen"] }).default("checked_in").notNull(),
+  tier: text("tier", { enum: ["full", "half", "minimal"] }).default("full").notNull(),
   mood: text("mood", { enum: ["happy", "tired", "stressed"] }),
   note: text("note"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),

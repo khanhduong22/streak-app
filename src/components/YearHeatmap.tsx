@@ -7,6 +7,7 @@ type DayData = {
   date: string;
   count: number; // 0 or 1
   status?: "checked_in" | "frozen";
+  tier?: "full" | "half" | "minimal";
 };
 
 export function YearHeatmap({
@@ -23,7 +24,7 @@ export function YearHeatmap({
     // Fetch last 12 months
     startTransition(async () => {
       const now = new Date();
-      const allCheckIns: { checkInDate: string; status: "checked_in" | "frozen"; note?: string | null }[] = [];
+      const allCheckIns: { checkInDate: string; status: "checked_in" | "frozen"; tier: "full" | "half" | "minimal"; note?: string | null }[] = [];
 
       // Fetch current month + last 11 months
       for (let i = 0; i < 12; i++) {
@@ -32,7 +33,7 @@ export function YearHeatmap({
         allCheckIns.push(...(data as any));
       }
 
-      const checkInMap = new Map(allCheckIns.map(c => [c.checkInDate, c.status]));
+      const checkInMap = new Map(allCheckIns.map(c => [c.checkInDate, { status: c.status, tier: c.tier }]));
 
       // Build 365 days array going back from today
       const result: DayData[] = [];
@@ -40,11 +41,12 @@ export function YearHeatmap({
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split("T")[0];
-        const status = checkInMap.get(dateStr);
+        const data = checkInMap.get(dateStr);
         result.push({ 
           date: dateStr, 
-          count: status ? 1 : 0,
-          status: status as any
+          count: data ? 1 : 0,
+          status: data?.status as any,
+          tier: data?.tier as any
         });
       }
 
@@ -94,10 +96,13 @@ export function YearHeatmap({
                 day.status === "frozen" 
                   ? { background: "var(--accent-cyan)" } // Freeze color
                   : day.count > 0 
-                    ? { background: color } 
+                    ? { 
+                        background: color,
+                        opacity: day.tier === "minimal" ? 0.4 : day.tier === "half" ? 0.7 : 1
+                      } 
                     : undefined
               }
-              title={`${day.date}${day.status === "frozen" ? " ❄️ Frozen" : day.count > 0 ? " ✓" : ""}`}
+              title={`${day.date}${day.status === "frozen" ? " ❄️ Frozen" : day.count > 0 ? " ✓ " + (day.tier === "full" ? "🎯 Full" : day.tier === "half" ? "👍 Half" : "🤏 Minimal") : ""}`}
             />
           )
         )}

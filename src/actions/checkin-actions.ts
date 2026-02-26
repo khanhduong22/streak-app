@@ -27,7 +27,8 @@ function getDaysBetween(date1Str: string, date2Str: string): number {
 export async function checkIn(
   streakId: string,
   note?: string,
-  mood?: "happy" | "tired" | "stressed" | null
+  mood?: "happy" | "tired" | "stressed" | null,
+  tier: "full" | "half" | "minimal" = "full"
 ) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -69,6 +70,7 @@ export async function checkIn(
     userId: string;
     checkInDate: string;
     status: "checked_in" | "frozen";
+    tier: "full" | "half" | "minimal";
     mood?: "happy" | "tired" | "stressed" | null;
     note?: string | null;
   }[] = [
@@ -77,10 +79,14 @@ export async function checkIn(
         userId,
         checkInDate: today,
         status: "checked_in",
+        tier,
         mood: mood || null,
         note: note || null,
       },
     ];
+
+  // Coin reward mapping
+  const coinsReward = tier === "full" ? 30 : tier === "half" ? 20 : 10;
 
   // Logic 1: Checked in yesterday or today? -> Normal streak++
   if (streak.lastCheckIn === yesterday || streak.lastCheckIn === today) {
@@ -109,6 +115,7 @@ export async function checkIn(
           userId,
           checkInDate: d.toISOString().split("T")[0],
           status: "frozen",
+          tier: "full",
         });
       }
     } else {
@@ -135,18 +142,18 @@ export async function checkIn(
       })
       .where(eq(streaks.id, streakId));
 
-    // 3. Update user: give 10 coins, deduct freezes
+    // 3. Update user: give coins based on tier, deduct freezes
     await tx
       .update(users)
       .set({
-        coins: user.coins + 10,
+        coins: user.coins + coinsReward,
         freezeTokens: user.freezeTokens - freezesToUse,
       })
       .where(eq(users.id, userId));
   });
 
   revalidatePath("/dashboard");
-  return { earnedCoins: 10, freezesUsed: freezesToUse };
+  return { earnedCoins: coinsReward, freezesUsed: freezesToUse };
 }
 
 export async function undoCheckIn(streakId: string) {
@@ -172,14 +179,17 @@ export async function undoCheckIn(streakId: string) {
     // 2. Delete today's checkin
     await tx.delete(checkIns).where(eq(checkIns.id, todayCheckin.id));
 
-    // 3. Deduct 10 coins (we gave 10 coins when they checked in)
+    // 3. Deduct coins (assuming they got full/half/minimal but for simplicity we can't easily query the exact reward here without refetching it)
+    // Actually we CAN query it from `todayCheckin`.
+    const coinsRewardToDeduct = todayCheckin.tier === "full" ? 30 : todayCheckin.tier === "half" ? 20 : 10;
+
     const user = await tx.query.users.findFirst({
       where: eq(users.id, userId),
     });
     if (user) {
       await tx
         .update(users)
-        .set({ coins: Math.max(0, user.coins - 10) })
+        .set({ coins: Math.max(0, user.coins - coinsRewardToDeduct) })
         .where(eq(users.id, userId));
     }
 

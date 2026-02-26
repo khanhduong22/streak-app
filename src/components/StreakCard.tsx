@@ -35,7 +35,8 @@ export function StreakCard({
   const [view, setView] = useState<View>("none");
   const [showShare, setShowShare] = useState(false);
   const [animating, setAnimating] = useState(false);
-  const [askingMood, setAskingMood] = useState(false);
+  const [askingTier, setAskingTier] = useState(false);
+  const [askingMood, setAskingMood] = useState<{ active: boolean; tier?: "full" | "half" | "minimal" }>({ active: false });
 
   const today = new Date().toISOString().split("T")[0];
   const checkedInToday = streak.lastCheckIn === today;
@@ -50,12 +51,22 @@ export function StreakCard({
     setView((prev) => (prev === v ? "none" : v));
   }
 
-  function handleCheckIn(mood?: "happy" | "tired" | "stressed" | null) {
-    setAskingMood(false);
+  function handleCheckInInit() {
+    setAskingTier(true);
+  }
+
+  function handleTierSelect(tier: "full" | "half" | "minimal") {
+    setAskingTier(false);
+    setAskingMood({ active: true, tier });
+  }
+
+  function handleMoodSelect(mood?: "happy" | "tired" | "stressed" | null) {
+    const tier = askingMood.tier || "full";
+    setAskingMood({ active: false });
     setAnimating(true);
     startTransition(async () => {
       try {
-        await checkIn(streak.id, undefined, mood);
+        await checkIn(streak.id, undefined, mood, tier);
       } catch (e: unknown) {
         alert((e as Error).message);
       }
@@ -158,22 +169,43 @@ export function StreakCard({
               ↩️
             </button>
           </div>
-        ) : askingMood ? (
+        ) : askingTier ? (
+          <div style={{ marginTop: 16, background: "var(--bg-glass)", padding: 12, borderRadius: "var(--radius-md)" }}>
+            <div style={{ fontSize: "0.875rem", marginBottom: 8, color: "var(--text-secondary)", textAlign: "center", fontWeight: 600 }}>
+              How did you do today?
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8, justifyContent: "space-between" }} onClick={() => handleTierSelect("full")}>
+                <span>🎯 Full Goal</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>+30 🪙</span>
+              </button>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8, justifyContent: "space-between" }} onClick={() => handleTierSelect("half")}>
+                <span>👍 Halfway</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>+20 🪙</span>
+              </button>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8, justifyContent: "space-between" }} onClick={() => handleTierSelect("minimal")}>
+                <span>🤏 Minimal (Saved Streak)</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>+10 🪙</span>
+              </button>
+              <button className="btn btn-ghost" style={{ flex: 1, padding: 8 }} onClick={() => setAskingTier(false)}>Cancel</button>
+            </div>
+          </div>
+        ) : askingMood.active ? (
           <div style={{ marginTop: 16, background: "var(--bg-glass)", padding: 12, borderRadius: "var(--radius-md)" }}>
             <div style={{ fontSize: "0.875rem", marginBottom: 8, color: "var(--text-secondary)", textAlign: "center" }}>
               How are you feeling today?
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleCheckIn("happy")}>😊</button>
-              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleCheckIn("tired")}>😫</button>
-              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleCheckIn("stressed")}>🤯</button>
-              <button className="btn btn-ghost" style={{ flex: 1, padding: 8 }} onClick={() => handleCheckIn(null)}>Skip</button>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleMoodSelect("happy")}>😊</button>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleMoodSelect("tired")}>😫</button>
+              <button className="btn btn-secondary" style={{ flex: 1, padding: 8 }} onClick={() => handleMoodSelect("stressed")}>🤯</button>
+              <button className="btn btn-ghost" style={{ flex: 1, padding: 8 }} onClick={() => handleMoodSelect(null)}>Skip</button>
             </div>
           </div>
         ) : (
           <button
             className="checkin-btn available"
-            onClick={() => setAskingMood(true)}
+            onClick={handleCheckInInit}
             disabled={isPending}
           >
             {isPending ? "⏳ Checking in..." : "🔥 Check in"}

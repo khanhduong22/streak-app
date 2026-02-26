@@ -13,13 +13,15 @@ export function CheckInCalendar({
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [checkInDates, setCheckInDates] = useState<Set<string>>(new Set());
+  const [checkInMap, setCheckInMap] = useState<Map<string, { status: string, tier: string }>>(new Map());
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     startTransition(async () => {
       const data = await getCheckIns(streakId, year, month);
-      setCheckInDates(new Set(data.map((c) => c.checkInDate)));
+      const map = new Map<string, { status: string, tier: string }>();
+      data.forEach(c => map.set(c.checkInDate, { status: c.status, tier: c.tier as string }));
+      setCheckInMap(map);
     });
   }, [streakId, year, month]);
 
@@ -84,7 +86,8 @@ export function CheckInCalendar({
           const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(
             day
           ).padStart(2, "0")}`;
-          const isActive = checkInDates.has(dateStr);
+          const data = checkInMap.get(dateStr);
+          const isActive = !!data;
           const isToday = dateStr === today;
 
           return (
@@ -95,9 +98,13 @@ export function CheckInCalendar({
               }`}
               style={
                 isActive
-                  ? { background: color, opacity: isPending ? 0.5 : 1 }
+                  ? { 
+                      background: data.status === "frozen" ? "var(--accent-cyan)" : color, 
+                      opacity: isPending ? 0.5 : (data.tier === "minimal" ? 0.4 : data.tier === "half" ? 0.7 : 1) 
+                    }
                   : undefined
               }
+              title={isActive ? (data.status === "frozen" ? "❄️ Frozen" : `✓ ${data.tier === "full" ? "Full" : data.tier === "half" ? "Half" : "Minimal"}`) : undefined}
             >
               {day}
             </div>
