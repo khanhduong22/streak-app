@@ -9,16 +9,19 @@ export async function GET(req: NextRequest) {
   const userId = searchParams.get("state"); // We passed userId in state
   const error = searchParams.get("error");
 
+  const baseUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:33000";
+  const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+
   if (error || !code || !userId) {
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/settings?fitbit=error&reason=${error || "missing_params"}`
+      `${cleanBaseUrl}/settings?fitbit=error&reason=${error || "missing_params"}`
     );
   }
 
   try {
     const clientId = process.env.FITBIT_CLIENT_ID!;
     const clientSecret = process.env.FITBIT_CLIENT_SECRET!;
-    const redirectUri = `${process.env.NEXTAUTH_URL}/api/connect/fitbit/callback`;
+    const redirectUri = `${cleanBaseUrl}/api/connect/fitbit/callback`;
 
     // Fitbit requires Basic Auth header with base64 encoded client_id:client_secret
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
@@ -62,12 +65,12 @@ export async function GET(req: NextRequest) {
       .where(eq(users.id, userId));
 
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/settings?fitbit=connected`
+      `${cleanBaseUrl}/settings?fitbit=connected`
     );
   } catch (err) {
     console.error("Fitbit OAuth error:", err);
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/settings?fitbit=error&reason=token_exchange_failed`
+      `${cleanBaseUrl}/settings?fitbit=error&reason=token_exchange_failed`
     );
   }
 }
