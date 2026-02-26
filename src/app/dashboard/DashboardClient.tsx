@@ -21,7 +21,7 @@ type Streak = {
   coopPartnerStreakId: string | null;
   stakeAmount: number;
   stakeStatus: "none" | "active" | "won" | "lost";
-  autoCheckinSource: "none" | "google_fit";
+  autoCheckinSource: "none" | "fitbit";
   autoCheckinMinMinutes: number;
   autoCheckinMinSteps: number;
   createdAt: Date;

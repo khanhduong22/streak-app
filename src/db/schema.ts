@@ -21,10 +21,10 @@ export const users = pgTable("user", {
   coins: integer("coins").default(0).notNull(),
   freezeTokens: integer("freeze_tokens").default(0).notNull(),
   aiCoachPersonality: text("ai_coach_personality", { enum: ["military", "sweetheart", "stoic"] }).default("military").notNull(),
-  // Google Fit OAuth tokens
-  fitAccessToken: text("fit_access_token"),
-  fitRefreshToken: text("fit_refresh_token"),
-  fitTokenExpiry: timestamp("fit_token_expiry", { mode: "date" }),
+  // Fitbit OAuth tokens
+  fitbitAccessToken: text("fitbit_access_token"),
+  fitbitRefreshToken: text("fitbit_refresh_token"),
+  fitbitTokenExpiry: timestamp("fitbit_token_expiry", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
@@ -86,8 +86,8 @@ export const streaks = pgTable("streak", {
   stakeStatus: text("stake_status", { enum: ["none", "active", "won", "lost"] }).default("none").notNull(),
   // Co-op
   coopPartnerStreakId: uuid("coop_partner_streak_id"),
-  // Auto Check-in from Google Fit
-  autoCheckinSource: text("auto_checkin_source", { enum: ["none", "google_fit"] }).default("none").notNull(),
+  // Auto Check-in from Fitbit
+  autoCheckinSource: text("auto_checkin_source", { enum: ["none", "fitbit"] }).default("none").notNull(),
   autoCheckinMinMinutes: integer("auto_checkin_min_minutes").default(10).notNull(),
   autoCheckinMinSteps: integer("auto_checkin_min_steps").default(2000).notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),

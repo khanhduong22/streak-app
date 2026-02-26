@@ -1,29 +1,29 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { getFitStatus, disconnectFit, setAutoCheckin } from "@/actions/fit-actions";
+import { getFitbitStatus, disconnectFitbit, setAutoCheckin } from "@/actions/fit-actions";
 
-export function FitConnectPanel({
+export function FitbitConnectPanel({
   streakId,
   autoCheckinSource,
   autoCheckinMinMinutes,
   autoCheckinMinSteps,
 }: {
   streakId: string;
-  autoCheckinSource: "none" | "google_fit";
+  autoCheckinSource: "none" | "fitbit";
   autoCheckinMinMinutes: number;
   autoCheckinMinSteps: number;
 }) {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
-  const [autoEnabled, setAutoEnabled] = useState(autoCheckinSource === "google_fit");
+  const [autoEnabled, setAutoEnabled] = useState(autoCheckinSource === "fitbit");
   const [minMin, setMinMin] = useState(autoCheckinMinMinutes);
   const [minSteps, setMinSteps] = useState(autoCheckinMinSteps);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    getFitStatus().then(s => {
+    getFitbitStatus().then(s => {
       setConnected(s.connected);
       setLoading(false);
     });
@@ -32,7 +32,7 @@ export function FitConnectPanel({
   function handleToggleAuto(enabled: boolean) {
     setAutoEnabled(enabled);
     startTransition(async () => {
-      await setAutoCheckin(streakId, enabled ? "google_fit" : "none", minMin, minSteps);
+      await setAutoCheckin(streakId, enabled ? "fitbit" : "none", minMin, minSteps);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     });
@@ -40,16 +40,16 @@ export function FitConnectPanel({
 
   function handleSaveThresholds() {
     startTransition(async () => {
-      await setAutoCheckin(streakId, "google_fit", minMin, minSteps);
+      await setAutoCheckin(streakId, "fitbit", minMin, minSteps);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     });
   }
 
   function handleDisconnect() {
-    if (!confirm("Disconnect Google Fit? All auto check-ins for your streaks will be disabled.")) return;
+    if (!confirm("Disconnect Fitbit? All auto check-ins for your streaks will be disabled.")) return;
     startTransition(async () => {
-      await disconnectFit();
+      await disconnectFitbit();
       setConnected(false);
       setAutoEnabled(false);
     });
@@ -60,26 +60,26 @@ export function FitConnectPanel({
   return (
     <div className="fit-panel" style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-color)" }}>
       <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        🏃 Auto Check-in (Google Fit)
+        ⌚ Auto Check-in (Fitbit)
       </div>
 
       {!connected ? (
         <div>
           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: 10 }}>
-            Connect Google Fit to auto-check-in this streak when you work out!
+            Connect Fitbit to auto-check-in this streak when you work out!
           </p>
           <a
-            href="/api/connect/google-fit"
+            href="/api/connect/fitbit"
             className="btn btn-primary"
-            style={{ display: "block", textAlign: "center", textDecoration: "none" }}
+            style={{ display: "block", textAlign: "center", textDecoration: "none", background: "#00B0B9", color: "white", border: "none" }}
           >
-            🔗 Connect Google Fit
+            🔗 Connect Fitbit
           </a>
         </div>
       ) : (
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <span style={{ fontSize: "0.875rem", color: "#4ade80", fontWeight: 600 }}>✅ Google Fit Connected</span>
+            <span style={{ fontSize: "0.875rem", color: "#00B0B9", fontWeight: 600 }}>✅ Fitbit Connected</span>
             <button className="btn btn-ghost btn-sm" style={{ color: "var(--text-muted)", fontSize: "0.75rem" }} onClick={handleDisconnect} disabled={isPending}>
               Disconnect
             </button>

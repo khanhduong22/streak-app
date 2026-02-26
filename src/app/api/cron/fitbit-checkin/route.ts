@@ -4,72 +4,58 @@ import { users, streaks, checkIns } from "@/db/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-/** Refresh a Google OAuth token using the refresh_token */
-async function refreshFitToken(refreshToken: string) {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+/** Refresh a Fitbit OAuth token using the refresh_token */
+async function refreshFitbitToken(refreshToken: string) {
+  const clientId = process.env.FITBIT_CLIENT_ID!;
+  const clientSecret = process.env.FITBIT_CLIENT_SECRET!;
+  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+
+  const res = await fetch("https://api.fitbit.com/oauth2/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Authorization": `Basic ${basicAuth}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
     body: new URLSearchParams({
-      refresh_token: refreshToken,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
       grant_type: "refresh_token",
+      refresh_token: refreshToken,
     }),
   });
+
+  if (!res.ok) {
+    throw new Error(`Fitbit Token Refresh Error: ${res.status}`);
+  }
   return res.json();
 }
 
-/** Query Google Fit for today's aggregate data */
-async function getTodayFitData(accessToken: string) {
-  // Google Fit uses millisecond timestamps
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startMs = startOfDay.getTime();
-  const endMs = now.getTime();
-
-  const body = {
-    aggregateBy: [
-      { dataTypeName: "com.google.step_count.delta" },
-      { dataTypeName: "com.google.active_minutes" },
-    ],
-    bucketByTime: { durationMillis: endMs - startMs },
-    startTimeMillis: startMs,
-    endTimeMillis: endMs,
-  };
+/** Query Fitbit for today's summary data (steps, active minutes) */
+async function getTodayFitbitData(accessToken: string, userId: string) {
+  // Fitbit uses YYYY-MM-DD for dates
+  const today = new Date().toISOString().split("T")[0];
 
   const res = await fetch(
-    "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
+    `https://api.fitbit.com/1/user/-/activities/date/${today}.json`,
     {
-      method: "POST",
+      method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
     }
   );
 
   if (!res.ok) {
-    throw new Error(`Fit API error: ${res.status}`);
+    throw new Error(`Fitbit API error: ${res.status}`);
   }
 
   const data = await res.json();
+  const summary = data.summary;
 
-  let totalSteps = 0;
-  let totalActiveMinutes = 0;
-
-  for (const bucket of data.bucket || []) {
-    for (const dataset of bucket.dataset || []) {
-      for (const point of dataset.point || []) {
-        if (dataset.dataSourceId?.includes("step_count")) {
-          totalSteps += point.value?.[0]?.intVal || 0;
-        }
-        if (dataset.dataSourceId?.includes("active_minutes")) {
-          totalActiveMinutes += point.value?.[0]?.intVal || 0;
-        }
-      }
-    }
-  }
+  const totalSteps = summary?.steps || 0;
+  // Fitbit splits active minutes into 3 categories: lightly, fairly, very
+  const totalActiveMinutes =
+    (summary?.lightlyActiveMinutes || 0) +
+    (summary?.fairlyActiveMinutes || 0) +
+    (summary?.veryActiveMinutes || 0);
 
   return { totalSteps, totalActiveMinutes };
 }
@@ -84,38 +70,39 @@ export async function POST(req: NextRequest) {
   const today = new Date().toISOString().split("T")[0];
   const results: { userId: string; streakId: string; action: string }[] = [];
 
-  // Get all users with Google Fit connected
-  const fitUsers = await db.query.users.findMany({
-    where: isNotNull(users.fitAccessToken),
+  // Get all users with Fitbit connected
+  const fitbitUsers = await db.query.users.findMany({
+    where: isNotNull(users.fitbitAccessToken),
   });
 
-  for (const user of fitUsers) {
+  for (const user of fitbitUsers) {
     try {
-      let accessToken = user.fitAccessToken!;
+      let accessToken = user.fitbitAccessToken!;
 
       // Refresh token if expired (or expiring within 5 min)
-      const expiresAt = user.fitTokenExpiry;
+      const expiresAt = user.fitbitTokenExpiry;
       const needsRefresh = !expiresAt || expiresAt.getTime() < Date.now() + 5 * 60 * 1000;
 
-      if (needsRefresh && user.fitRefreshToken) {
-        const newTokens = await refreshFitToken(user.fitRefreshToken);
+      if (needsRefresh && user.fitbitRefreshToken) {
+        const newTokens = await refreshFitbitToken(user.fitbitRefreshToken);
         if (newTokens.access_token) {
           accessToken = newTokens.access_token;
           await db.update(users).set({
-            fitAccessToken: newTokens.access_token,
-            fitTokenExpiry: new Date(Date.now() + newTokens.expires_in * 1000),
+            fitbitAccessToken: newTokens.access_token,
+            fitbitRefreshToken: newTokens.refresh_token,
+            fitbitTokenExpiry: new Date(Date.now() + newTokens.expires_in * 1000),
           }).where(eq(users.id, user.id));
         }
       }
 
-      // Fetch Fit data
-      const { totalSteps, totalActiveMinutes } = await getTodayFitData(accessToken);
+      // Fetch Fitbit data
+      const { totalSteps, totalActiveMinutes } = await getTodayFitbitData(accessToken, user.id);
 
       // Get streaks with auto-checkin enabled for this user
       const autoStreaks = await db.query.streaks.findMany({
         where: and(
           eq(streaks.userId, user.id),
-          eq(streaks.autoCheckinSource, "google_fit")
+          eq(streaks.autoCheckinSource, "fitbit")
         ),
       });
 
@@ -134,7 +121,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Check thresholds: OR logic (either steps OR active minutes)
+        // Check thresholds: OR logic
         const stepsOk = totalSteps >= streak.autoCheckinMinSteps;
         const minutesOk = totalActiveMinutes >= streak.autoCheckinMinMinutes;
 
@@ -147,7 +134,7 @@ export async function POST(req: NextRequest) {
               checkInDate: today,
               status: "checked_in",
               tier: "full",
-              note: `🤖 Auto via Google Fit (${totalSteps} steps, ${totalActiveMinutes} min active)`,
+              note: `⌚ Auto via Fitbit (${totalSteps} steps, ${totalActiveMinutes} min active)`,
             });
 
             // Increment streak
@@ -163,7 +150,7 @@ export async function POST(req: NextRequest) {
               updatedAt: new Date(),
             }).where(eq(streaks.id, streak.id));
 
-            // Give coins (full tier = 30)
+            // Give coins
             await tx.update(users).set({ coins: user.coins + 30 }).where(eq(users.id, user.id));
           });
 

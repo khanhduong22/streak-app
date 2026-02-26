@@ -6,29 +6,29 @@ import { auth } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-/** Get Google Fit connection status for the current user */
-export async function getFitStatus() {
+/** Get Fitbit connection status for the current user */
+export async function getFitbitStatus() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const user = await db.query.users.findFirst({
     where: eq(users.id, session.user.id),
-    columns: { fitAccessToken: true, fitTokenExpiry: true },
+    columns: { fitbitAccessToken: true, fitbitTokenExpiry: true },
   });
 
   return {
-    connected: !!user?.fitAccessToken,
-    expiry: user?.fitTokenExpiry ?? null,
+    connected: !!user?.fitbitAccessToken,
+    expiry: user?.fitbitTokenExpiry ?? null,
   };
 }
 
-/** Disconnect Google Fit (remove tokens) */
-export async function disconnectFit() {
+/** Disconnect Fitbit (remove tokens) */
+export async function disconnectFitbit() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   await db.update(users)
-    .set({ fitAccessToken: null, fitRefreshToken: null, fitTokenExpiry: null })
+    .set({ fitbitAccessToken: null, fitbitRefreshToken: null, fitbitTokenExpiry: null })
     .where(eq(users.id, session.user.id));
 
   // Also disable auto-checkin for all streaks
@@ -39,10 +39,10 @@ export async function disconnectFit() {
   revalidatePath("/settings");
 }
 
-/** Enable/disable auto check-in for a streak, and set thresholds */
+/** Enable/disable auto check-in via Fitbit for a streak, and set thresholds */
 export async function setAutoCheckin(
   streakId: string,
-  source: "none" | "google_fit",
+  source: "none" | "fitbit",
   minMinutes?: number,
   minSteps?: number
 ) {
