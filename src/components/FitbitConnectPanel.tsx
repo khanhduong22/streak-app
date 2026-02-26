@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { getFitbitStatus, disconnectFitbit, setAutoCheckin } from "@/actions/fit-actions";
 
 export function FitbitConnectPanel({
@@ -17,6 +18,7 @@ export function FitbitConnectPanel({
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const [autoEnabled, setAutoEnabled] = useState(autoCheckinSource === "fitbit");
   const [minMin, setMinMin] = useState(autoCheckinMinMinutes);
   const [minSteps, setMinSteps] = useState(autoCheckinMinSteps);
@@ -68,13 +70,13 @@ export function FitbitConnectPanel({
           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: 10 }}>
             Connect Fitbit to auto-check-in this streak when you work out!
           </p>
-          <a
-            href="/api/connect/fitbit"
+          <button
+            onClick={() => router.push("/api/connect/fitbit")}
             className="btn btn-primary"
-            style={{ display: "block", textAlign: "center", textDecoration: "none", background: "#00B0B9", color: "white", border: "none" }}
+            style={{ width: "100%", display: "block", textAlign: "center", background: "#00B0B9", color: "white", border: "none", padding: "10px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: 600, cursor: "pointer" }}
           >
             🔗 Connect Fitbit
-          </a>
+          </button>
         </div>
       ) : (
         <div>
