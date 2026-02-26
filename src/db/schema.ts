@@ -5,6 +5,7 @@ import {
   timestamp,
   integer,
   date,
+  boolean,
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -19,6 +20,7 @@ export const users = pgTable("user", {
   image: text("image"),
   coins: integer("coins").default(0).notNull(),
   freezeTokens: integer("freeze_tokens").default(0).notNull(),
+  aiCoachPersonality: text("ai_coach_personality", { enum: ["military", "sweetheart", "stoic"] }).default("military").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
@@ -75,6 +77,8 @@ export const streaks = pgTable("streak", {
   currentStreak: integer("current_streak").default(0).notNull(),
   longestStreak: integer("longest_streak").default(0).notNull(),
   lastCheckIn: date("last_check_in", { mode: "string" }),
+  // Co-op: If set, this streak is paired with another streak
+  coopPartnerStreakId: uuid("coop_partner_streak_id"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 });
@@ -92,6 +96,55 @@ export const checkIns = pgTable("check_in", {
   tier: text("tier", { enum: ["full", "half", "minimal"] }).default("full").notNull(),
   mood: text("mood", { enum: ["happy", "tired", "stressed"] }),
   note: text("note"),
+  photoUrl: text("photo_url"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+// ─── Death Pool Tables ────────────────────────────────
+export const deathPools = pgTable("death_pool", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  stakeAmount: integer("stake_amount").notNull(),
+  startDate: date("start_date", { mode: "string" }).notNull(),
+  endDate: date("end_date", { mode: "string" }).notNull(),
+  status: text("status", { enum: ["active", "ended"] }).default("active").notNull(),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const deathPoolMembers = pgTable(
+  "death_pool_member",
+  {
+    poolId: uuid("pool_id")
+      .notNull()
+      .references(() => deathPools.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    stakeCoins: integer("stake_coins").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    joinedAt: timestamp("joined_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (m) => [primaryKey({ columns: [m.poolId, m.userId] })]
+);
+
+// Co-op invite system: one user sends an invite to another for a specific streak
+export const coopInvites = pgTable("coop_invite", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  // The streak that is proposing the co-op
+  fromStreakId: uuid("from_streak_id")
+    .notNull()
+    .references(() => streaks.id, { onDelete: "cascade" }),
+  fromUserId: uuid("from_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  // Invited by email (the recipient may not exist yet)
+  toEmail: text("to_email").notNull(),
+  // If they accept, their streak ID is saved here
+  toStreakId: uuid("to_streak_id").references(() => streaks.id, { onDelete: "set null" }),
+  status: text("status", { enum: ["pending", "accepted", "rejected"] }).default("pending").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
@@ -99,6 +152,9 @@ export const checkIns = pgTable("check_in", {
 export const usersRelations = relations(users, ({ many }) => ({
   streaks: many(streaks),
   checkIns: many(checkIns),
+  sentCoopInvites: many(coopInvites, { relationName: "sentCoopInvites" }),
+  deathPoolsCreated: many(deathPools),
+  deathPoolMemberships: many(deathPoolMembers),
 }));
 
 export const streaksRelations = relations(streaks, ({ one, many }) => ({
@@ -112,4 +168,26 @@ export const checkInsRelations = relations(checkIns, ({ one }) => ({
     references: [streaks.id],
   }),
   user: one(users, { fields: [checkIns.userId], references: [users.id] }),
+}));
+
+export const coopInvitesRelations = relations(coopInvites, ({ one }) => ({
+  fromUser: one(users, {
+    fields: [coopInvites.fromUserId],
+    references: [users.id],
+    relationName: "sentCoopInvites",
+  }),
+  fromStreak: one(streaks, {
+    fields: [coopInvites.fromStreakId],
+    references: [streaks.id],
+  }),
+}));
+
+export const deathPoolsRelations = relations(deathPools, ({ one, many }) => ({
+  creator: one(users, { fields: [deathPools.createdBy], references: [users.id] }),
+  members: many(deathPoolMembers),
+}));
+
+export const deathPoolMembersRelations = relations(deathPoolMembers, ({ one }) => ({
+  pool: one(deathPools, { fields: [deathPoolMembers.poolId], references: [deathPools.id] }),
+  user: one(users, { fields: [deathPoolMembers.userId], references: [users.id] }),
 }));

@@ -7,6 +7,7 @@ import { BadgeDisplay } from "./BadgeDisplay";
 import { YearHeatmap } from "./YearHeatmap";
 import { ShareCard } from "./ShareCard";
 import { MoodAnalytics } from "./MoodAnalytics";
+import { CoopPanel } from "./CoopPanel";
 
 type Streak = {
   id: string;
@@ -17,10 +18,11 @@ type Streak = {
   currentStreak: number;
   longestStreak: number;
   lastCheckIn: string | null;
+  coopPartnerStreakId: string | null;
   createdAt: Date;
 };
 
-type View = "none" | "month" | "year" | "badges" | "analytics";
+type View = "none" | "month" | "year" | "badges" | "analytics" | "coop";
 
 export function StreakCard({
   streak,
@@ -108,6 +110,7 @@ export function StreakCard({
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("year")} title="Year Heatmap">📊</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("badges")} title="Badges">🏅</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleView("analytics")} title="Mood Analytics">🧠</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => toggleView("coop")} title="Co-op Streak" style={{ color: streak.coopPartnerStreakId ? "#a78bfa" : undefined }}>🤝</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)} title="Share">📤</button>
             <button className="btn btn-ghost btn-sm" onClick={() => onEdit(streak)} title="Edit">✏️</button>
             <button className="btn btn-ghost btn-sm" onClick={() => onDelete(streak.id)} title="Delete">🗑️</button>
@@ -152,6 +155,9 @@ export function StreakCard({
         )}
         {view === "analytics" && (
           <MoodAnalytics streakId={streak.id} />
+        )}
+        {view === "coop" && (
+          <CoopPanel streakId={streak.id} coopPartnerStreakId={streak.coopPartnerStreakId} />
         )}
 
         {/* Check-in */}

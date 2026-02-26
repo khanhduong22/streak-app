@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { StreakCard } from "@/components/StreakCard";
 import { StreakForm } from "@/components/StreakForm";
 import { deleteStreak } from "@/actions/streak-actions";
+import { CoopInviteBar } from "@/components/CoopInviteBar";
 
 type Streak = {
   id: string;
@@ -14,6 +15,7 @@ type Streak = {
   currentStreak: number;
   longestStreak: number;
   lastCheckIn: string | null;
+  coopPartnerStreakId: string | null;
   createdAt: Date;
   updatedAt: Date;
   userId: string;
@@ -70,6 +72,8 @@ export function DashboardClient({
           </span>
         </div>
       </div>
+
+      <CoopInviteBar />
 
       {initialStreaks.length === 0 ? (
         <div className="empty-state">

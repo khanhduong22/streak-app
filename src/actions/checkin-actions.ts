@@ -28,7 +28,8 @@ export async function checkIn(
   streakId: string,
   note?: string,
   mood?: "happy" | "tired" | "stressed" | null,
-  tier: "full" | "half" | "minimal" = "full"
+  tier: "full" | "half" | "minimal" = "full",
+  photoUrl?: string | null
 ) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -73,6 +74,7 @@ export async function checkIn(
     tier: "full" | "half" | "minimal";
     mood?: "happy" | "tired" | "stressed" | null;
     note?: string | null;
+    photoUrl?: string | null;
   }[] = [
       {
         streakId,
@@ -82,6 +84,7 @@ export async function checkIn(
         tier,
         mood: mood || null,
         note: note || null,
+        photoUrl: photoUrl || null,
       },
     ];
 
